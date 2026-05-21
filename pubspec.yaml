@@ -1,0 +1,55 @@
+name: phonefx_plus
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  
+  # PDF generation
+  pdf: ^3.11.1
+  printing: ^5.13.3
+  
+  # File handling
+  path_provider: ^2.1.4
+  share_plus: ^10.1.2
+  open_filex: ^4.5.0
+  
+  # Date formatting
+  intl: ^0.19.0
+  
+  # Local storage
+  sqflite: ^2.4.1
+  path: ^1.9.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^5.0.0
+
+  # App icon generator ← ADD THIS
+  flutter_launcher_icons: ^0.13.1
+
+# Icon config ← ADD THIS (outside flutter: section)
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/icon.png"
+  min_sdk_android: 21
+
+flutter:
+  uses-material-design: true
+
+  # Assets ← ADD THIS
+  assets:
+    - assets/icon/
+
+    
