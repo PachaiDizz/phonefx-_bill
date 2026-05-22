@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:open_filex/open_filex.dart';
 import '../models/repair_record.dart' show RepairRecord, DeviceIssues;
@@ -77,6 +79,31 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     if (confirm == true) {
       await DatabaseHelper.instance.deleteRepair(id);
       _loadRepairs();
+    }
+  }
+
+  Future<void> _openPdf(RepairRecord repair) async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final files = Directory(dir.path).listSync().whereType<File>().where(
+        (f) => f.path.contains('PhoneFX_Bill_${repair.id}_'),
+      ).toList();
+      if (files.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No PDF found. Please generate one first.')),
+          );
+        }
+        return;
+      }
+      files.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
+      OpenFilex.open(files.first.path);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error opening PDF: $e')),
+        );
+      }
     }
   }
 
@@ -224,26 +251,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 10),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          OpenFilex.open(file.path);
-                        },
-                        icon: const Icon(Icons.visibility),
-                        label: const Text('Open PDF File'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF10B981),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
                     ),
                   ],
                 ),
@@ -687,31 +694,47 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () => _deleteRepair(repair.id!),
-                          icon: const Icon(Icons.delete_outline, size: 18),
-                          label: const Text('Delete'),
+                          icon: const Icon(Icons.delete_outline, size: 16),
+                          label: const Text('Delete', style: TextStyle(fontSize: 11)),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.red,
                             side: const BorderSide(color: Colors.red),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(10),
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _openPdf(repair),
+                          icon: const Icon(Icons.visibility, size: 16),
+                          label: const Text('Open PDF', style: TextStyle(fontSize: 11)),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF10B981),
+                            side: const BorderSide(color: Color(0xFF10B981)),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
                       Expanded(
                         flex: 2,
                         child: ElevatedButton.icon(
                           onPressed: () => _generatePdf(repair),
-                          icon: const Icon(Icons.picture_as_pdf, size: 18),
-                          label: const Text('Generate PDF'),
+                          icon: const Icon(Icons.picture_as_pdf, size: 16),
+                          label: const Text('Generate PDF', style: TextStyle(fontSize: 11)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF2563EB),
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(10),
                             ),
                           ),
                         ),

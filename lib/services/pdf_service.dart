@@ -198,22 +198,14 @@ class PdfService {
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 pw.Container(
-                  width: 16,
-                  height: 16,
+                  width: 10,
+                  height: 10,
                   decoration: pw.BoxDecoration(
                     color: _getIssueIconColor(issue),
                     shape: pw.BoxShape.circle,
                   ),
-                  child: pw.Text(
-                    _getIssueIcon(issue),
-                    style: const pw.TextStyle(
-                      fontSize: 9,
-                      color: PdfColors.white,
-                    ),
-                    textAlign: pw.TextAlign.center,
-                  ),
                 ),
-                pw.SizedBox(width: 8),
+                pw.SizedBox(width: 10),
                 pw.Expanded(
                   child: pw.Text(issue, style: const pw.TextStyle(fontSize: 12)),
                 ),
@@ -227,22 +219,14 @@ class PdfService {
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
                   pw.Container(
-                    width: 16,
-                    height: 16,
+                    width: 10,
+                    height: 10,
                     decoration: pw.BoxDecoration(
                       color: PdfColors.blueGrey,
                       shape: pw.BoxShape.circle,
                     ),
-                    child: pw.Text(
-                      '+',
-                      style: const pw.TextStyle(
-                        fontSize: 9,
-                        color: PdfColors.white,
-                      ),
-                      textAlign: pw.TextAlign.center,
-                    ),
                   ),
-                  pw.SizedBox(width: 8),
+                  pw.SizedBox(width: 10),
                   pw.Expanded(
                     child: pw.Text('Custom: ${repair.customIssue}', style: const pw.TextStyle(fontSize: 12)),
                   ),
@@ -252,86 +236,6 @@ class PdfService {
         ],
       ),
     );
-  }
-
-  static String _getIssueIcon(String issue) {
-    final i = issue.toLowerCase();
-    if (i.startsWith('screen') || i.startsWith('display') || i.startsWith('ghost') ||
-        i.startsWith('lcd') || i.contains('backlight') || i.contains('dead pixel') ||
-        i.contains('burn-in')) {
-      return '◈';
-    }
-    if (i.startsWith('battery') || i.startsWith('charging') || i.startsWith('overheat') ||
-        i.startsWith('boot') || i.startsWith('no power') || i.startsWith('power') ||
-        i.startsWith('charg')) {
-      return '⚡';
-    }
-    if (i.contains('water') || i.contains('liquid')) {
-      return '≈';
-    }
-    if (i.startsWith('motherboard') || i.startsWith('cpu') || i.startsWith('gpu') ||
-        i.startsWith('graphics')) {
-      return '⊞';
-    }
-    if (i.startsWith('button') || i.startsWith('back') || i.startsWith('housing') ||
-        i.startsWith('sim') || i.startsWith('headphone') || i.startsWith('fingerprint') ||
-        i.startsWith('face') || i.startsWith('vibration') || i.startsWith('crown') ||
-        i.startsWith('band') || i.startsWith('sensor') || i.startsWith('hinge') ||
-        i.startsWith('usb') || i.startsWith('port')) {
-      return '⚒';
-    }
-    if (i.startsWith('speaker') || i.startsWith('microphone') || i.contains('audio') ||
-        i.contains('sound')) {
-      return '♪';
-    }
-    if (i.startsWith('camera') || i.startsWith('webcam')) {
-      return '◉';
-    }
-    if (i.startsWith('network') || i.startsWith('wi-fi') || i.startsWith('hotspot') ||
-        i.startsWith('cellular') || i.startsWith('gps') || i.startsWith('nfc') ||
-        i.contains('signal') || i.contains('ethernet')) {
-      return '∿';
-    }
-    if (i.startsWith('bluetooth')) {
-      return 'ℬ';
-    }
-    if (i.startsWith('software') || i.startsWith('factory reset') || i.startsWith('virus') ||
-        i.startsWith('malware') || i.startsWith('os') || i.startsWith('bios') ||
-        i.startsWith('driver') || i.startsWith('firmware')) {
-      return '⚙';
-    }
-    if (i.startsWith('data') || i.startsWith('storage') || i.startsWith('ram') ||
-        i.startsWith('raid')) {
-      return '⏏';
-    }
-    if (i.startsWith('icloud') || i.startsWith('google') || i.startsWith('passcode') ||
-        i.startsWith('activation') || i.startsWith('imei') || i.startsWith('password') ||
-        i.startsWith('account') || i.startsWith('bitlocker')) {
-      return '⚷';
-    }
-    if (i.startsWith('disc') || i.startsWith('hdmi') || i.startsWith('controller') ||
-        i.startsWith('trigger') || i.contains('console')) {
-      return '◆';
-    }
-    if (i.startsWith('cooling') || i.startsWith('fan') || i.contains('thermal')) {
-      return '❄';
-    }
-    if (i.startsWith('keyboard') || i.startsWith('trackpad')) {
-      return '⌨';
-    }
-    if (i.startsWith('stylus') || i.startsWith('pen')) {
-      return '✎';
-    }
-    if (i.startsWith('cable') || i.startsWith('airflow') || i.contains('optim')) {
-      return '⤴';
-    }
-    if (i.startsWith('custom pc') || i.startsWith('pc diagnosis')) {
-      return '🖅';
-    }
-    if (i.startsWith('monitor') || i.startsWith('peripheral')) {
-      return '▣';
-    }
-    return '•';
   }
 
   static PdfColor _getIssueIconColor(String issue) {
