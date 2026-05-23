@@ -111,10 +111,9 @@ class _RepairDetailScreenState extends State<RepairDetailScreen> {
   Future<void> _openPdf() async {
     try {
       final dir = await getApplicationDocumentsDirectory();
-      final files = Directory(dir.path).listSync().whereType<File>().where(
-        (f) => f.path.contains('PhoneFX_Bill_${_repair.id}_'),
-      ).toList();
-      if (files.isEmpty) {
+      final billTag = _repair.billNumber ?? 'PFX-${_repair.id!.toString().padLeft(4, '0')}';
+      final file = File('${dir.path}/PhoneFX_$billTag.pdf');
+      if (!await file.exists()) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('No PDF found. Please generate one first.')),
@@ -122,8 +121,7 @@ class _RepairDetailScreenState extends State<RepairDetailScreen> {
         }
         return;
       }
-      files.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
-      OpenFilex.open(files.first.path);
+      OpenFilex.open(file.path);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -451,6 +449,9 @@ class _RepairDetailScreenState extends State<RepairDetailScreen> {
                   if (_repair.repairNotes != null && _repair.repairNotes!.isNotEmpty)
                     _buildRepairNotesCard(),
                   const SizedBox(height: 16),
+                  if (_repair.componentQualities.isNotEmpty)
+                    _buildComponentQualitiesCard(),
+                  const SizedBox(height: 16),
                   if (_repair.customerProvidedParts.isNotEmpty)
                     _buildCustomerPartsCard(),
                   const SizedBox(height: 16),
@@ -471,8 +472,6 @@ class _RepairDetailScreenState extends State<RepairDetailScreen> {
                   ),
                   const SizedBox(height: 16),
                   _buildTotalAmountCard(currencyFormat),
-                  const SizedBox(height: 24),
-                  _buildEditButton(),
                   const SizedBox(height: 12),
                   _buildGeneratePdfButton(context),
                   const SizedBox(height: 40),
@@ -805,6 +804,93 @@ class _RepairDetailScreenState extends State<RepairDetailScreen> {
                   Icon(Icons.build, color: Colors.amber[700], size: 16),
                   const SizedBox(width: 10),
                   Text(part, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                ],
+              ),
+            )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // COMPONENT QUALITIES CARD
+  Widget _buildComponentQualitiesCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.indigo.shade200, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.indigo.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.build_circle, color: Color(0xFF8B5CF6), size: 20),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Component Qualities Used',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ..._repair.componentQualities.entries.map((entry) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.indigo[50],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      entry.key,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF4F46E5),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.green[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.green[200]!),
+                    ),
+                    child: Text(
+                      entry.value,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green[700],
+                      ),
+                    ),
+                  ),
                 ],
               ),
             )),
@@ -1471,37 +1557,6 @@ class _RepairDetailScreenState extends State<RepairDetailScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEditButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: ElevatedButton.icon(
-        onPressed: () async {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => AddRepairScreen(repair: _repair),
-            ),
-          );
-          _reloadRepair();
-        },
-        icon: const Icon(Icons.edit, size: 20),
-        label: const Text(
-          'Edit All Details',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF2563EB),
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          elevation: 4,
         ),
       ),
     );

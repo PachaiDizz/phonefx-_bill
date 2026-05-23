@@ -20,7 +20,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 6, // bumped from 5 → 6
+      version: 7, // bumped from 6 → 7
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -59,6 +59,11 @@ class DatabaseHelper {
         'ALTER TABLE repairs ADD COLUMN billNumber TEXT',
       );
     }
+    if (oldVersion < 7) {
+      await db.execute(
+        'ALTER TABLE repairs ADD COLUMN componentQualities TEXT NOT NULL DEFAULT ""',
+      );
+    }
   }
 
   Future<void> _createDB(Database db, int version) async {
@@ -82,7 +87,8 @@ class DatabaseHelper {
         checklistAfter TEXT NOT NULL DEFAULT "",
         customerProvidedParts TEXT NOT NULL DEFAULT "",
         repairNotes TEXT,
-        billNumber TEXT
+        billNumber TEXT,
+        componentQualities TEXT NOT NULL DEFAULT ""
       )
     ''');
   }

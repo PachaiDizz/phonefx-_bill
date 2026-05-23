@@ -84,10 +84,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   Future<void> _openPdf(RepairRecord repair) async {
     try {
       final dir = await getApplicationDocumentsDirectory();
-      final files = Directory(dir.path).listSync().whereType<File>().where(
-        (f) => f.path.contains('PhoneFX_Bill_${repair.id}_'),
-      ).toList();
-      if (files.isEmpty) {
+      final billTag = repair.billNumber ?? 'PFX-${repair.id!.toString().padLeft(4, '0')}';
+      final file = File('${dir.path}/PhoneFX_$billTag.pdf');
+      if (!await file.exists()) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('No PDF found. Please generate one first.')),
@@ -95,8 +94,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         }
         return;
       }
-      files.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
-      OpenFilex.open(files.first.path);
+      OpenFilex.open(file.path);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

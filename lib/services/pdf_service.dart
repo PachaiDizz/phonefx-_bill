@@ -28,6 +28,10 @@ class PdfService {
             _buildRepairNotes(repair),
             pw.SizedBox(height: 20),
           ],
+          if (repair.componentQualities.isNotEmpty) ...[
+            _buildComponentQualities(repair),
+            pw.SizedBox(height: 20),
+          ],
           if (repair.customerProvidedParts.isNotEmpty) ...[
             _buildCustomerParts(repair),
             pw.SizedBox(height: 20),
@@ -49,7 +53,7 @@ class PdfService {
 
     final output = await getApplicationDocumentsDirectory();
     final billTag = repair.billNumber ?? 'PFX-${repair.id!.toString().padLeft(4, '0')}';
-    final fileName = 'PhoneFX_${billTag}.pdf';
+    final fileName = 'PhoneFX_$billTag.pdf';
     final file = File('${output.path}/$fileName');
     await file.writeAsBytes(await pdf.save());
 
@@ -341,6 +345,59 @@ class PdfService {
               style: const pw.TextStyle(fontSize: 11, lineSpacing: 1.5),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  static pw.Widget _buildComponentQualities(RepairRecord repair) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(16),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.indigo),
+        borderRadius: pw.BorderRadius.circular(8),
+        color: PdfColors.indigo50,
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(
+            'Component Qualities Used',
+            style: pw.TextStyle(
+              fontSize: 14,
+              fontWeight: pw.FontWeight.bold,
+              color: PdfColors.indigo800,
+            ),
+          ),
+          pw.SizedBox(height: 10),
+          ...repair.componentQualities.entries.map((entry) => pw.Padding(
+            padding: const pw.EdgeInsets.only(bottom: 6),
+            child: pw.Row(
+              children: [
+                pw.Container(
+                  width: 8,
+                  height: 8,
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.indigo,
+                    shape: pw.BoxShape.circle,
+                  ),
+                ),
+                pw.SizedBox(width: 10),
+                pw.Text(
+                  '${entry.key}: ',
+                  style: pw.TextStyle(
+                    fontSize: 11,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.indigo800,
+                  ),
+                ),
+                pw.Text(
+                  entry.value,
+                  style: const pw.TextStyle(fontSize: 11),
+                ),
+              ],
+            ),
+          )),
         ],
       ),
     );

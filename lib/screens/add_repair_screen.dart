@@ -26,6 +26,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
   final _customBrandController = TextEditingController();
   List<String> _selectedIssues = [];
   List<String> _selectedCustomerParts = [];
+  Map<String, String> _componentQualities = {};
   DateTime _repairDate = DateTime.now();
   DateTime? _pickupDate;
   String _warrantyPeriod = '1 month';
@@ -52,6 +53,9 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
       _selectedCustomerParts = List.from(widget.repair!.customerProvidedParts);
       if (widget.repair!.repairNotes != null) {
         _repairNotesController.text = widget.repair!.repairNotes!;
+      }
+      if (widget.repair!.componentQualities.isNotEmpty) {
+        _componentQualities = Map.from(widget.repair!.componentQualities);
       }
       if (!DeviceBrands.brands.contains(_deviceBrand)) {
         _isCustomBrand = true;
@@ -187,6 +191,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
       repairNotes: _repairNotesController.text.trim().isNotEmpty
           ? _repairNotesController.text.trim()
           : null,
+      componentQualities: _componentQualities,
     );
 
     try {
@@ -349,13 +354,13 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
     );
   }
 
-  InputDecoration _inputDecoration(String label, IconData icon, {String? hint}) {
+  InputDecoration _inputDecoration(String label, IconData? icon, {String? hint}) {
     return InputDecoration(
       labelText: label,
       labelStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
       hintText: hint,
       hintStyle: TextStyle(color: Colors.grey[600], fontSize: 14),
-      prefixIcon: Icon(icon, color: Colors.grey[400], size: 22),
+      prefixIcon: icon != null ? Icon(icon, color: Colors.grey[400], size: 22) : null,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       filled: true,
       fillColor: const Color(0xFF334155),
@@ -675,7 +680,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Describe what you repaired/replaced (e.g. "Replaced Power IC", "Installed OLED Original screen").',
+                    'Select component quality used and describe what you repaired/replaced.',
                     style: TextStyle(color: Colors.indigo[300], fontSize: 12),
                   ),
                 ),
@@ -683,6 +688,74 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
             ),
           ),
           const SizedBox(height: 16),
+          ...ComponentQualities.categories.map((category) => Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.build, size: 16, color: Colors.indigo[400]),
+                    const SizedBox(width: 8),
+                    Text(
+                      category,
+                      style: TextStyle(
+                        color: Colors.grey[300],
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (_componentQualities.containsKey(category))
+                      Container(
+                        margin: const EdgeInsets.only(left: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.indigo.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          _componentQualities[category]!,
+                          style: const TextStyle(fontSize: 10, color: Colors.indigo, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: ComponentQualities.options[category]!.map((quality) {
+                    final isSelected = _componentQualities[category] == quality;
+                    return FilterChip(
+                      label: Text(
+                        quality,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isSelected ? Colors.indigo : Colors.grey[300],
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                      selected: isSelected,
+                      selectedColor: Colors.indigo.withValues(alpha: 0.3),
+                      checkmarkColor: Colors.indigo,
+                      backgroundColor: const Color(0xFF334155),
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            _componentQualities[category] = quality;
+                          } else {
+                            _componentQualities.remove(category);
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          )),
+          const Divider(color: Colors.white12),
+          const SizedBox(height: 8),
           TextFormField(
             controller: _repairNotesController,
             maxLines: 5,
@@ -946,7 +1019,12 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
         controller: _amountController,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         style: const TextStyle(color: Colors.white, fontSize: 16),
-        decoration: _inputDecoration('Total Amount (RM)', Icons.attach_money, hint: '0.00'),
+        decoration: _inputDecoration('Total Amount', null, hint: '0.00').copyWith(
+          prefixIcon: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
+            child: const Text('RM', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+          ),
+        ),
         validator: (value) {
           if (value == null || value.trim().isEmpty) {
             return 'Please enter total amount';

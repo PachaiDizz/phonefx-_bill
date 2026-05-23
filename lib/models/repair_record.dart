@@ -24,6 +24,9 @@ class RepairRecord {
   final String? repairNotes;
   final String? billNumber;
 
+  // NEW: Component quality selections (e.g. Screen -> OLED, Battery -> Genuine Apple Part)
+  final Map<String, String> componentQualities;
+
   RepairRecord({
     this.id,
     this.billNumber,
@@ -44,6 +47,7 @@ class RepairRecord {
     this.checklistAfter = const {},
     this.customerProvidedParts = const [],
     this.repairNotes,
+    this.componentQualities = const {},
   });
 
   Map<String, dynamic> toMap() {
@@ -71,11 +75,24 @@ class RepairRecord {
       'customerProvidedParts': customerProvidedParts.join('|'),
       'repairNotes': repairNotes,
       'billNumber': billNumber,
+      'componentQualities': componentQualities.entries
+          .map((e) => '${e.key}:::${e.value}')
+          .join('||'),
     };
   }
 
   factory RepairRecord.fromMap(Map<String, dynamic> map) {
     Map<String, String> parseChecklist(String? raw) {
+      if (raw == null || raw.isEmpty) return {};
+      return Map.fromEntries(
+        raw.split('||').where((e) => e.contains(':::')).map((e) {
+          final parts = e.split(':::');
+          return MapEntry(parts[0], parts[1]);
+        }),
+      );
+    }
+
+    Map<String, String> parseQualities(String? raw) {
       if (raw == null || raw.isEmpty) return {};
       return Map.fromEntries(
         raw.split('||').where((e) => e.contains(':::')).map((e) {
@@ -115,6 +132,7 @@ class RepairRecord {
           : [],
       repairNotes: map['repairNotes'] as String?,
       billNumber: map['billNumber'] as String?,
+      componentQualities: parseQualities(map['componentQualities'] as String?),
     );
   }
 
@@ -138,6 +156,7 @@ class RepairRecord {
     List<String>? customerProvidedParts,
     String? repairNotes,
     String? billNumber,
+    Map<String, String>? componentQualities,
   }) {
     return RepairRecord(
       id: id ?? this.id,
@@ -161,6 +180,7 @@ class RepairRecord {
           customerProvidedParts ?? this.customerProvidedParts,
       repairNotes: repairNotes ?? this.repairNotes,
       billNumber: billNumber ?? this.billNumber,
+      componentQualities: componentQualities ?? this.componentQualities,
     );
   }
 }
@@ -605,4 +625,46 @@ class CustomerProvidedParts {
     'RAM',
     'Motherboard',
   ];
+}
+
+// ─────────────────────────────────────────────
+// COMPONENT QUALITIES  (Screen, Battery, IC, etc.)
+// ─────────────────────────────────────────────
+
+class ComponentQualities {
+  static const String screen = 'Screen';
+  static const String battery = 'Battery';
+  static const String icCpu = 'IC (CPU)';
+  static const String icEmmc = 'IC (EMMC/UFS/NAND)';
+
+  static const List<String> categories = [
+    screen,
+    battery,
+    icCpu,
+    icEmmc,
+  ];
+
+  static const Map<String, List<String>> options = {
+    screen: [
+      'TFT / INCELL',
+      'OLED',
+      'AMOLED',
+      'OEM',
+      'Genuine Apple Part',
+    ],
+    battery: [
+      'AAA',
+      'OEM',
+      'High Capacity',
+      'Genuine Apple Part',
+    ],
+    icCpu: [
+      'Reball',
+      'Replace',
+    ],
+    icEmmc: [
+      'Reball',
+      'Replace',
+    ],
+  };
 }
