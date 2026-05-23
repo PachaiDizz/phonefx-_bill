@@ -20,7 +20,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3, // bumped from 2 → 3
+      version: 5, // bumped from 4 → 5
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -34,7 +34,6 @@ class DatabaseHelper {
       await db.execute('ALTER TABLE repairs ADD COLUMN pickupDate TEXT');
     }
     if (oldVersion < 3) {
-      // New columns for warranty void selections and before/after checklist
       await db.execute(
         'ALTER TABLE repairs ADD COLUMN warrantyVoidConditions TEXT NOT NULL DEFAULT ""',
       );
@@ -43,6 +42,16 @@ class DatabaseHelper {
       );
       await db.execute(
         'ALTER TABLE repairs ADD COLUMN checklistAfter TEXT NOT NULL DEFAULT ""',
+      );
+    }
+    if (oldVersion < 4) {
+      await db.execute(
+        'ALTER TABLE repairs ADD COLUMN customerProvidedParts TEXT NOT NULL DEFAULT ""',
+      );
+    }
+    if (oldVersion < 5) {
+      await db.execute(
+        'ALTER TABLE repairs ADD COLUMN repairNotes TEXT',
       );
     }
   }
@@ -65,7 +74,9 @@ class DatabaseHelper {
         createdAt TEXT NOT NULL,
         warrantyVoidConditions TEXT NOT NULL DEFAULT "",
         checklistBefore TEXT NOT NULL DEFAULT "",
-        checklistAfter TEXT NOT NULL DEFAULT ""
+        checklistAfter TEXT NOT NULL DEFAULT "",
+        customerProvidedParts TEXT NOT NULL DEFAULT "",
+        repairNotes TEXT
       )
     ''');
   }

@@ -83,6 +83,31 @@ class _RepairDetailScreenState extends State<RepairDetailScreen> {
 
 
 
+  Future<void> _reloadRepair() async {
+    final updated = await DatabaseHelper.instance.getRepair(_repair.id!);
+    if (updated != null && mounted) {
+      setState(() {
+        _repair = updated;
+        _selectedVoidConditions = List.from(_repair.warrantyVoidConditions);
+        final items = DeviceChecklist.getChecklistForDeviceType(
+          _repair.deviceType,
+        );
+        _checklistBefore = {
+          for (final item in items)
+            item: _repair.checklistBefore.containsKey(item)
+                ? (_repair.checklistBefore[item] == 'pass' ? true : false)
+                : null,
+        };
+        _checklistAfter = {
+          for (final item in items)
+            item: _repair.checklistAfter.containsKey(item)
+                ? (_repair.checklistAfter[item] == 'pass' ? true : false)
+                : null,
+        };
+      });
+    }
+  }
+
   Future<void> _openPdf() async {
     try {
       final dir = await getApplicationDocumentsDirectory();
@@ -220,8 +245,9 @@ class _RepairDetailScreenState extends State<RepairDetailScreen> {
       symbol: 'RM ',
       decimalDigits: 2,
     );
-    final isWarrantyValid = _repair.warrantyExpiryDate.isAfter(DateTime.now());
-    final daysLeft = _repair.warrantyExpiryDate
+    final isNoWarranty = WarrantyOptions.isNoWarranty(_repair.warrantyPeriod);
+    final isWarrantyValid = isNoWarranty ? false : _repair.warrantyExpiryDate.isAfter(DateTime.now());
+    final daysLeft = isNoWarranty ? 0 : _repair.warrantyExpiryDate
         .difference(DateTime.now())
         .inDays;
 
@@ -274,13 +300,14 @@ class _RepairDetailScreenState extends State<RepairDetailScreen> {
                   ),
                   child: const Icon(Icons.edit, color: Colors.white),
                 ),
-                onPressed: () {
-                  Navigator.push(
+                onPressed: () async {
+                  await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => AddRepairScreen(repair: _repair),
                     ),
-                  ).then((_) => Navigator.pop(context));
+                  );
+                  _reloadRepair();
                 },
               ),
               const SizedBox(width: 8),
@@ -416,7 +443,13 @@ class _RepairDetailScreenState extends State<RepairDetailScreen> {
                   const SizedBox(height: 16),
                   _buildIssuesCard(_repair),
                   const SizedBox(height: 16),
-                  _buildWarrantyCard(isWarrantyValid, daysLeft, dateFormat),
+                  if (_repair.repairNotes != null && _repair.repairNotes!.isNotEmpty)
+                    _buildRepairNotesCard(),
+                  const SizedBox(height: 16),
+                  if (_repair.customerProvidedParts.isNotEmpty)
+                    _buildCustomerPartsCard(),
+                  const SizedBox(height: 16),
+                  _buildWarrantyCard(isNoWarranty, isWarrantyValid, daysLeft, dateFormat),
                   const SizedBox(height: 16),
                   _buildWarrantyVoidCard(),
                   const SizedBox(height: 16),
@@ -434,6 +467,8 @@ class _RepairDetailScreenState extends State<RepairDetailScreen> {
                   const SizedBox(height: 16),
                   _buildTotalAmountCard(currencyFormat),
                   const SizedBox(height: 24),
+                  _buildEditButton(),
+                  const SizedBox(height: 12),
                   _buildGeneratePdfButton(context),
                   const SizedBox(height: 40),
                 ],
@@ -630,8 +665,153 @@ class _RepairDetailScreenState extends State<RepairDetailScreen> {
     );
   }
 
+  Widget _buildRepairNotesCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.indigo.shade200, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.indigo.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.notes, color: Color(0xFF8B5CF6), size: 20),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Repair Notes',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.indigo[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.indigo[100]!),
+              ),
+              child: Text(
+                _repair.repairNotes!,
+                style: const TextStyle(fontSize: 13, height: 1.5),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCustomerPartsCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.amber.shade300, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.handyman, color: Colors.amber, size: 20),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Customer Provided Parts',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.red[50],
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.red[200]!),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.warning_amber, size: 16, color: Colors.red[600]),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'No warranty coverage for customer-provided parts.',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF991B1B), fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            ..._repair.customerProvidedParts.map((part) => Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.amber[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.amber[200]!),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.build, color: Colors.amber[700], size: 16),
+                  const SizedBox(width: 10),
+                  Text(part, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                ],
+              ),
+            )),
+          ],
+        ),
+      ),
+    );
+  }
+
   // WARRANTY CARD (Fixed Overflow)
   Widget _buildWarrantyCard(
+    bool isNoWarranty,
     bool isWarrantyValid,
     int daysLeft,
     DateFormat dateFormat,
@@ -639,7 +819,10 @@ class _RepairDetailScreenState extends State<RepairDetailScreen> {
     Color statusColor;
     IconData statusIcon;
 
-    if (isWarrantyValid) {
+    if (isNoWarranty) {
+      statusColor = Colors.grey;
+      statusIcon = Icons.block;
+    } else if (isWarrantyValid) {
       if (daysLeft <= 7) {
         statusColor = Colors.orange;
         statusIcon = Icons.warning_amber;
@@ -694,7 +877,7 @@ class _RepairDetailScreenState extends State<RepairDetailScreen> {
             _buildInfoRow('Warranty Period', _repair.warrantyPeriod),
             _buildInfoRow(
               'Valid Until',
-              dateFormat.format(_repair.warrantyExpiryDate),
+              isNoWarranty ? 'N/A' : dateFormat.format(_repair.warrantyExpiryDate),
               valueColor: statusColor,
             ),
             const SizedBox(height: 12),
@@ -711,11 +894,13 @@ class _RepairDetailScreenState extends State<RepairDetailScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      isWarrantyValid
-                          ? daysLeft <= 7
-                                ? 'Expiring in $daysLeft days'
-                                : 'Warranty Active'
-                          : 'Warranty Expired',
+                      isNoWarranty
+                          ? 'No Warranty Provided'
+                          : isWarrantyValid
+                              ? daysLeft <= 7
+                                  ? 'Expiring in $daysLeft days'
+                                  : 'Warranty Active'
+                              : 'Warranty Expired',
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         color: statusColor,
@@ -1281,6 +1466,37 @@ class _RepairDetailScreenState extends State<RepairDetailScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEditButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: ElevatedButton.icon(
+        onPressed: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AddRepairScreen(repair: _repair),
+            ),
+          );
+          _reloadRepair();
+        },
+        icon: const Icon(Icons.edit, size: 20),
+        label: const Text(
+          'Edit All Details',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF2563EB),
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 4,
         ),
       ),
     );

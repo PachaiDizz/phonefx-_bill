@@ -2,11 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:open_filex/open_filex.dart';
-import '../models/repair_record.dart' show RepairRecord, DeviceIssues;
+import '../models/repair_record.dart' show RepairRecord, WarrantyOptions;
 import '../services/database_helper.dart';
-import '../services/pdf_service.dart';
 import 'add_repair_screen.dart';
 import 'repair_detail_screen.dart';
 
@@ -107,166 +105,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     }
   }
 
-  Future<void> _generatePdf(RepairRecord repair) async {
-    final hasWarrantyConditions = repair.warrantyVoidConditions.isNotEmpty ||
-        repair.warrantyVoidConditions.length < DeviceIssues.warrantyVoidConditions.length;
-    final hasBeforeChecklist = repair.checklistBefore.isNotEmpty;
-    final hasAfterChecklist = repair.checklistAfter.isNotEmpty;
-
-    if (!hasWarrantyConditions || !hasBeforeChecklist || !hasAfterChecklist) {
-      final missing = <String>[];
-      if (!hasWarrantyConditions) missing.add('• Warranty Void Conditions');
-      if (!hasBeforeChecklist) missing.add('• Before Repair Checklist');
-      if (!hasAfterChecklist) missing.add('• After Repair Checklist');
-
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: const Row(
-              children: [
-                Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
-                SizedBox(width: 8),
-                Text('Cannot Generate Bill'),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Please complete all sections in the repair detail before generating the bill:'),
-                const SizedBox(height: 12),
-                ...missing.map((item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Text(item, style: const TextStyle(color: Colors.red, fontSize: 13)),
-                )),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: Colors.blue[50], borderRadius: BorderRadius.circular(8)),
-                  child: Row(
-                    children: [
-                      Icon(Icons.info_outline, color: Colors.blue[700], size: 16),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Tap on the repair card to open details and complete all checklists.',
-                          style: TextStyle(fontSize: 12, color: Colors.blue[700]),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-      }
-      return;
-    }
-
-    try {
-      final file = await PdfService.generatePdf(repair);
-      
-      if (mounted) {
-        showModalBottomSheet(
-          context: context,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          builder: (context) => Container(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.green[50],
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.check_circle, color: Colors.green[600], size: 48),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'PDF Generated!',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Bill for ${repair.customerName}',
-                  style: TextStyle(color: Colors.grey[600]),
-                ),
-                const SizedBox(height: 24),
-                Column(
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () => Navigator.pop(context),
-                            icon: const Icon(Icons.close),
-                            label: const Text('Close'),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              Share.shareXFiles([XFile(file.path)], text: 'PhoneFX+ Bill for ${repair.customerName}');
-                            },
-                            icon: const Icon(Icons.share),
-                            label: const Text('Share PDF'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF2563EB),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error generating PDF: $e')),
-        );
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -419,14 +257,19 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   Widget _buildRepairCard(RepairRecord repair, int index) {
     final dateFormat = DateFormat('dd MMM yyyy');
     final currencyFormat = NumberFormat.currency(symbol: 'RM ', decimalDigits: 2);
-    final isWarrantyValid = repair.warrantyExpiryDate.isAfter(DateTime.now());
-    final daysLeft = repair.warrantyExpiryDate.difference(DateTime.now()).inDays;
+    final isNoWarranty = WarrantyOptions.isNoWarranty(repair.warrantyPeriod);
+    final isWarrantyValid = isNoWarranty ? false : repair.warrantyExpiryDate.isAfter(DateTime.now());
+    final daysLeft = isNoWarranty ? 0 : repair.warrantyExpiryDate.difference(DateTime.now()).inDays;
 
     Color statusColor;
     String statusText;
     IconData statusIcon;
 
-    if (isWarrantyValid) {
+    if (isNoWarranty) {
+      statusColor = Colors.grey;
+      statusText = 'No Warranty';
+      statusIcon = Icons.block;
+    } else if (isWarrantyValid) {
       if (daysLeft <= 7) {
         statusColor = Colors.orange;
         statusText = 'Expiring soon';
@@ -642,20 +485,20 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'Warranty Until',
-                                style: TextStyle(fontSize: 11, color: Colors.grey[500], fontWeight: FontWeight.w500),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                dateFormat.format(repair.warrantyExpiryDate),
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: statusColor,
+                                Text(
+                                  'Warranty Until',
+                                  style: TextStyle(fontSize: 11, color: Colors.grey[500], fontWeight: FontWeight.w500),
                                 ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  isNoWarranty ? 'N/A' : dateFormat.format(repair.warrantyExpiryDate),
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: statusColor,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                             ],
                           ),
                         ),
@@ -688,53 +531,81 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       ],
                     ),
                   ),
+                  // Customer parts badge
+                  if (repair.customerProvidedParts.isNotEmpty)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.handyman, size: 14, color: Colors.amber[400]),
+                          const SizedBox(width: 6),
+                          Text(
+                            '${repair.customerProvidedParts.length} part(s) by customer — no warranty',
+                            style: TextStyle(fontSize: 11, color: Colors.amber[300], fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                    ),
                   const SizedBox(height: 16),
                   Row(
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () => _deleteRepair(repair.id!),
-                          icon: const Icon(Icons.delete_outline, size: 16),
-                          label: const Text('Delete', style: TextStyle(fontSize: 11)),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => AddRepairScreen(repair: repair),
+                              ),
+                            ).then((_) => _loadRepairs());
+                          },
+                          icon: const Icon(Icons.edit, size: 16),
+                          label: const Text('Edit', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.red,
-                            side: const BorderSide(color: Colors.red),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            foregroundColor: const Color(0xFF8B5CF6),
+                            side: const BorderSide(color: Color(0xFF8B5CF6), width: 1.5),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _deleteRepair(repair.id!),
+                          icon: const Icon(Icons.delete_outline, size: 16),
+                          label: const Text('Delete', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red,
+                            side: const BorderSide(color: Colors.red, width: 1.5),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () => _openPdf(repair),
                           icon: const Icon(Icons.visibility, size: 16),
-                          label: const Text('Open PDF', style: TextStyle(fontSize: 11)),
+                          label: const Text('Open PDF', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: const Color(0xFF10B981),
-                            side: const BorderSide(color: Color(0xFF10B981)),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            side: const BorderSide(color: Color(0xFF10B981), width: 1.5),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        flex: 2,
-                        child: ElevatedButton.icon(
-                          onPressed: () => _generatePdf(repair),
-                          icon: const Icon(Icons.picture_as_pdf, size: 16),
-                          label: const Text('Generate PDF', style: TextStyle(fontSize: 11)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF2563EB),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
                         ),

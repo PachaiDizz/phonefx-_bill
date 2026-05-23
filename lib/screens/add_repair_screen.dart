@@ -18,18 +18,20 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
   final _deviceModelController = TextEditingController();
   final _amountController = TextEditingController();
   final _customIssueController = TextEditingController();
+  final _repairNotesController = TextEditingController();
 
   String _deviceType = 'Phone';
   String _deviceBrand = 'Apple';
   bool _isCustomBrand = false;
   final _customBrandController = TextEditingController();
   List<String> _selectedIssues = [];
+  List<String> _selectedCustomerParts = [];
   DateTime _repairDate = DateTime.now();
   DateTime? _pickupDate;
   String _warrantyPeriod = '1 month';
   bool _isSaving = false;
 
-  final List<String> _deviceTypes = ['Phone', 'Laptop', 'PC'];
+  final List<String> _deviceTypes = ['Phone', 'Laptop', 'PC', 'Tablet', 'Smartwatch', 'Console'];
 
   @override
   void initState() {
@@ -47,6 +49,10 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
       if (widget.repair!.customIssue != null) {
         _customIssueController.text = widget.repair!.customIssue!;
       }
+      _selectedCustomerParts = List.from(widget.repair!.customerProvidedParts);
+      if (widget.repair!.repairNotes != null) {
+        _repairNotesController.text = widget.repair!.repairNotes!;
+      }
       if (!DeviceBrands.brands.contains(_deviceBrand)) {
         _isCustomBrand = true;
         _customBrandController.text = _deviceBrand;
@@ -61,6 +67,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
     _amountController.dispose();
     _customIssueController.dispose();
     _customBrandController.dispose();
+    _repairNotesController.dispose();
     super.dispose();
   }
 
@@ -176,6 +183,10 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
       warrantyExpiryDate: warrantyExpiryDate,
       totalAmount: double.parse(_amountController.text),
       createdAt: widget.repair?.createdAt ?? DateTime.now(),
+      customerProvidedParts: _selectedCustomerParts,
+      repairNotes: _repairNotesController.text.trim().isNotEmpty
+          ? _repairNotesController.text.trim()
+          : null,
     );
 
     try {
@@ -269,6 +280,10 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
                     _buildDeviceSection(),
                     const SizedBox(height: 16),
                     _buildIssuesSection(),
+                    const SizedBox(height: 16),
+                    _buildCustomerPartsSection(),
+                    const SizedBox(height: 16),
+                    _buildRepairNotesSection(),
                     const SizedBox(height: 16),
                     _buildDateSection(),
                     const SizedBox(height: 16),
@@ -551,6 +566,133 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
     );
   }
 
+  Widget _buildCustomerPartsSection() {
+    return _buildSectionCard(
+      'Customer Provided Parts',
+      Icons.build,
+      const Color(0xFFEC4899),
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.amber[900]!.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.amber[700]!),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.warning_amber, color: Colors.amber[400], size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Parts brought by customer — NO WARRANTY applies to these.',
+                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber[300], fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Select parts the customer brought (tap to select):',
+            style: TextStyle(color: Colors.grey[400], fontSize: 13),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: CustomerProvidedParts.parts.map((part) {
+              final isSelected = _selectedCustomerParts.contains(part);
+              return FilterChip(
+                label: Text(
+                  part,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isSelected ? const Color(0xFFEC4899) : Colors.grey[300],
+                  ),
+                ),
+                selected: isSelected,
+                selectedColor: const Color(0xFFFCE4EC),
+                checkmarkColor: const Color(0xFFEC4899),
+                backgroundColor: const Color(0xFF334155),
+                onSelected: (selected) {
+                  setState(() {
+                    if (selected) {
+                      _selectedCustomerParts.add(part);
+                    } else {
+                      _selectedCustomerParts.remove(part);
+                    }
+                  });
+                },
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Icon(Icons.info_outline, size: 16, color: Colors.grey[500]),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _selectedCustomerParts.isNotEmpty
+                      ? '${_selectedCustomerParts.length} part(s) — customer-provided, no warranty'
+                      : 'Customer has not provided any parts',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRepairNotesSection() {
+    return _buildSectionCard(
+      'Repair Notes',
+      Icons.notes,
+      const Color(0xFF8B5CF6),
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.indigo[900]!.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.indigo[700]!),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.indigo[400], size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Describe what you repaired/replaced (e.g. "Replaced Power IC", "Installed OLED Original screen").',
+                    style: TextStyle(color: Colors.indigo[300], fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _repairNotesController,
+            maxLines: 5,
+            style: const TextStyle(color: Colors.white, fontSize: 14),
+            decoration: _inputDecoration(
+              'Work done / Parts replaced',
+              Icons.edit_note,
+              hint: 'e.g. Replaced Power IC on motherboard\nInstalled OLED Original screen\nReplaced battery connector...',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDateSection() {
     final dateFormat = DateFormat('dd MMM yyyy');
     final expiryDate = WarrantyOptions.calculateExpiryDate(_repairDate, _warrantyPeriod);
@@ -633,7 +775,9 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.green[400]!, Colors.green[600]!],
+                colors: WarrantyOptions.isNoWarranty(_warrantyPeriod)
+                    ? [Colors.grey[600]!, Colors.grey[800]!]
+                    : [Colors.green[400]!, Colors.green[600]!],
               ),
               borderRadius: BorderRadius.circular(12),
             ),
@@ -645,20 +789,29 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
                     color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.access_time, color: Colors.white, size: 22),
+                  child: Icon(
+                    WarrantyOptions.isNoWarranty(_warrantyPeriod)
+                        ? Icons.block
+                        : Icons.access_time,
+                    color: Colors.white, size: 22,
+                  ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Warranty Valid Until:',
-                        style: TextStyle(fontSize: 12, color: Colors.white70),
+                      Text(
+                        WarrantyOptions.isNoWarranty(_warrantyPeriod)
+                            ? 'No Warranty'
+                            : 'Warranty Valid Until:',
+                        style: const TextStyle(fontSize: 12, color: Colors.white70),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        dateFormat.format(expiryDate),
+                        WarrantyOptions.isNoWarranty(_warrantyPeriod)
+                            ? 'No warranty provided'
+                            : dateFormat.format(expiryDate),
                         style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white),
                       ),
                     ],

@@ -24,6 +24,14 @@ class PdfService {
           pw.SizedBox(height: 20),
           _buildIssuesList(repair),
           pw.SizedBox(height: 20),
+          if (repair.repairNotes != null && repair.repairNotes!.isNotEmpty) ...[
+            _buildRepairNotes(repair),
+            pw.SizedBox(height: 20),
+          ],
+          if (repair.customerProvidedParts.isNotEmpty) ...[
+            _buildCustomerParts(repair),
+            pw.SizedBox(height: 20),
+          ],
           _buildChecklist('Before Repair Checklist', repair.checklistBefore, PdfColors.purple),
           pw.SizedBox(height: 20),
           _buildChecklist('After Repair Checklist', repair.checklistAfter, PdfColors.teal),
@@ -292,29 +300,111 @@ class PdfService {
     return PdfColors.grey600;
   }
 
+  static pw.Widget _buildRepairNotes(RepairRecord repair) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(16),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.indigo),
+        borderRadius: pw.BorderRadius.circular(8),
+        color: PdfColors.indigo50,
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(
+            'Repair Notes',
+            style: pw.TextStyle(
+              fontSize: 14,
+              fontWeight: pw.FontWeight.bold,
+              color: PdfColors.indigo800,
+            ),
+          ),
+          pw.SizedBox(height: 10),
+          pw.Container(
+            width: double.infinity,
+            padding: const pw.EdgeInsets.all(10),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.white,
+              borderRadius: pw.BorderRadius.circular(4),
+            ),
+            child: pw.Text(
+              repair.repairNotes!,
+              style: const pw.TextStyle(fontSize: 11, lineSpacing: 1.5),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static pw.Widget _buildCustomerParts(RepairRecord repair) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(16),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.orange),
+        borderRadius: pw.BorderRadius.circular(8),
+        color: PdfColors.orange50,
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(
+            'Customer Provided Parts',
+            style: pw.TextStyle(
+              fontSize: 14,
+              fontWeight: pw.FontWeight.bold,
+              color: PdfColors.orange800,
+            ),
+          ),
+          pw.SizedBox(height: 8),
+          pw.Container(
+            padding: const pw.EdgeInsets.all(8),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.red50,
+              borderRadius: pw.BorderRadius.circular(4),
+              border: pw.Border.all(color: PdfColors.red200),
+            ),
+            child: pw.Text(
+              'No warranty coverage for customer-provided parts.',
+              style: const pw.TextStyle(fontSize: 10, color: PdfColors.red700),
+            ),
+          ),
+          pw.SizedBox(height: 10),
+          ...repair.customerProvidedParts.map((part) => pw.Padding(
+            padding: const pw.EdgeInsets.only(bottom: 4),
+            child: pw.Row(
+              children: [
+                pw.Text('• ', style: const pw.TextStyle(fontSize: 11, color: PdfColors.orange800)),
+                pw.Text(part, style: const pw.TextStyle(fontSize: 11)),
+              ],
+            ),
+          )),
+        ],
+      ),
+    );
+  }
+
   static pw.Widget _buildWarrantyInfo(RepairRecord repair, DateFormat dateFormat) {
-    final isExpired = repair.warrantyExpiryDate.isBefore(DateTime.now());
+    final isNoWarranty = repair.warrantyPeriod == 'No Warranty';
+    final isExpired = isNoWarranty ? false : repair.warrantyExpiryDate.isBefore(DateTime.now());
+    
+    final borderColor = isNoWarranty ? PdfColors.grey : (isExpired ? PdfColors.red : PdfColors.green);
+    final bgColor = isNoWarranty ? PdfColors.grey50 : (isExpired ? PdfColors.red50 : PdfColors.green50);
+    final textColor = isNoWarranty ? PdfColors.grey700 : (isExpired ? PdfColors.red800 : PdfColors.green800);
     
     return pw.Container(
       padding: const pw.EdgeInsets.all(16),
       decoration: pw.BoxDecoration(
-        border: pw.Border.all(
-          color: isExpired ? PdfColors.red : PdfColors.green,
-          width: 2,
-        ),
+        border: pw.Border.all(color: borderColor, width: 2),
         borderRadius: pw.BorderRadius.circular(8),
-        color: isExpired ? PdfColors.red50 : PdfColors.green50,
+        color: bgColor,
       ),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Text(
             'Warranty Information',
-            style: pw.TextStyle(
-              fontSize: 16,
-              fontWeight: pw.FontWeight.bold,
-              color: isExpired ? PdfColors.red800 : PdfColors.green800,
-            ),
+            style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: textColor),
           ),
           pw.SizedBox(height: 10),
           pw.Row(
@@ -325,30 +415,31 @@ class PdfService {
             ],
           ),
           pw.SizedBox(height: 5),
-          pw.Row(
-            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-            children: [
-              pw.Text('Warranty Valid Until:', style: const pw.TextStyle(fontSize: 12)),
-              pw.Text(
-                dateFormat.format(repair.warrantyExpiryDate),
-                style: pw.TextStyle(
-                  fontSize: 12,
-                  fontWeight: pw.FontWeight.bold,
-                  color: isExpired ? PdfColors.red : PdfColors.green800,
+          if (!isNoWarranty)
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text('Warranty Valid Until:', style: const pw.TextStyle(fontSize: 12)),
+                pw.Text(
+                  dateFormat.format(repair.warrantyExpiryDate),
+                  style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: isExpired ? PdfColors.red : PdfColors.green800),
                 ),
-              ),
-            ],
-          ),
-          if (isExpired)
+              ],
+            ),
+          if (isNoWarranty)
             pw.Padding(
               padding: const pw.EdgeInsets.only(top: 5),
               child: pw.Text(
-                '⚠️ Warranty has expired',
-                style: pw.TextStyle(
-                  fontSize: 12,
-                  fontWeight: pw.FontWeight.bold,
-                  color: PdfColors.red,
-                ),
+                'No warranty provided',
+                style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700),
+              ),
+            )
+          else if (isExpired)
+            pw.Padding(
+              padding: const pw.EdgeInsets.only(top: 5),
+              child: pw.Text(
+                'Warranty has expired',
+                style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.red),
               ),
             ),
         ],
@@ -431,21 +522,13 @@ class PdfService {
             child: pw.Row(
               children: [
                 pw.Container(
-                  width: 14,
-                  height: 14,
+                  width: 12,
+                  height: 12,
                   decoration: pw.BoxDecoration(
                     color: entry.value == 'pass'
                         ? PdfColors.green
                         : PdfColors.red,
                     shape: pw.BoxShape.circle,
-                  ),
-                  child: pw.Text(
-                    entry.value == 'pass' ? '✓' : '✗',
-                    style: const pw.TextStyle(
-                      fontSize: 8,
-                      color: PdfColors.white,
-                    ),
-                    textAlign: pw.TextAlign.center,
                   ),
                 ),
                 pw.SizedBox(width: 8),

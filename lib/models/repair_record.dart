@@ -13,13 +13,15 @@ class RepairRecord {
   final double totalAmount;
   final DateTime createdAt;
 
-  // NEW: Selected warranty void conditions (empty = all apply by default)
   final List<String> warrantyVoidConditions;
-
-  // NEW: Before & after repair checklist results
-  // Key = checklist item label, Value = 'before', 'after', 'both', or 'fail'
   final Map<String, String> checklistBefore;
   final Map<String, String> checklistAfter;
+
+  // NEW: Customer-provided parts (no warranty applies to these)
+  final List<String> customerProvidedParts;
+
+  // NEW: Free-text notes for work done (e.g. "Replaced Power IC", "OLED Original screen")
+  final String? repairNotes;
 
   RepairRecord({
     this.id,
@@ -38,6 +40,8 @@ class RepairRecord {
     this.warrantyVoidConditions = const [],
     this.checklistBefore = const {},
     this.checklistAfter = const {},
+    this.customerProvidedParts = const [],
+    this.repairNotes,
   });
 
   Map<String, dynamic> toMap() {
@@ -62,11 +66,13 @@ class RepairRecord {
       'checklistAfter': checklistAfter.entries
           .map((e) => '${e.key}:::${e.value}')
           .join('||'),
+      'customerProvidedParts': customerProvidedParts.join('|'),
+      'repairNotes': repairNotes,
     };
   }
 
   factory RepairRecord.fromMap(Map<String, dynamic> map) {
-    Map<String, String> _parseChecklist(String? raw) {
+    Map<String, String> parseChecklist(String? raw) {
       if (raw == null || raw.isEmpty) return {};
       return Map.fromEntries(
         raw.split('||').where((e) => e.contains(':::')).map((e) {
@@ -97,8 +103,14 @@ class RepairRecord {
               (map['warrantyVoidConditions'] as String).isNotEmpty
           ? (map['warrantyVoidConditions'] as String).split('||')
           : [],
-      checklistBefore: _parseChecklist(map['checklistBefore'] as String?),
-      checklistAfter: _parseChecklist(map['checklistAfter'] as String?),
+      checklistBefore: parseChecklist(map['checklistBefore'] as String?),
+      checklistAfter: parseChecklist(map['checklistAfter'] as String?),
+      customerProvidedParts:
+          map['customerProvidedParts'] != null &&
+              (map['customerProvidedParts'] as String).isNotEmpty
+          ? (map['customerProvidedParts'] as String).split('|')
+          : [],
+      repairNotes: map['repairNotes'] as String?,
     );
   }
 
@@ -119,6 +131,8 @@ class RepairRecord {
     List<String>? warrantyVoidConditions,
     Map<String, String>? checklistBefore,
     Map<String, String>? checklistAfter,
+    List<String>? customerProvidedParts,
+    String? repairNotes,
   }) {
     return RepairRecord(
       id: id ?? this.id,
@@ -138,6 +152,9 @@ class RepairRecord {
           warrantyVoidConditions ?? this.warrantyVoidConditions,
       checklistBefore: checklistBefore ?? this.checklistBefore,
       checklistAfter: checklistAfter ?? this.checklistAfter,
+      customerProvidedParts:
+          customerProvidedParts ?? this.customerProvidedParts,
+      repairNotes: repairNotes ?? this.repairNotes,
     );
   }
 }
@@ -524,6 +541,7 @@ class DeviceChecklist {
 
 class WarrantyOptions {
   static const List<String> periods = [
+    'No Warranty',
     '1 week',
     '1 month',
     '3 months',
@@ -533,6 +551,8 @@ class WarrantyOptions {
 
   static DateTime calculateExpiryDate(DateTime startDate, String period) {
     switch (period) {
+      case 'No Warranty':
+        return startDate; // expires immediately
       case '1 week':
         return startDate.add(const Duration(days: 7));
       case '1 month':
@@ -547,4 +567,36 @@ class WarrantyOptions {
         return startDate.add(const Duration(days: 30));
     }
   }
+
+  static bool isNoWarranty(String period) => period == 'No Warranty';
+}
+
+// ─────────────────────────────────────────────
+// CUSTOMER-PROVIDED PARTS
+// ─────────────────────────────────────────────
+
+class CustomerProvidedParts {
+  static const List<String> parts = [
+    'Screen / Display',
+    'Battery',
+    'Charging Port',
+    'Speaker',
+    'Microphone',
+    'Front Camera',
+    'Rear Camera',
+    'Back Glass / Housing',
+    'SIM Card Tray',
+    'Headphone Jack',
+    'Fingerprint Sensor',
+    'Face ID Sensor',
+    'Power Button',
+    'Volume Button',
+    'Vibration Motor',
+    'Cooling Fan',
+    'Keyboard',
+    'Trackpad',
+    'Hard Drive / SSD',
+    'RAM',
+    'Motherboard',
+  ];
 }
