@@ -20,7 +20,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 5, // bumped from 4 → 5
+      version: 6, // bumped from 5 → 6
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -54,6 +54,11 @@ class DatabaseHelper {
         'ALTER TABLE repairs ADD COLUMN repairNotes TEXT',
       );
     }
+    if (oldVersion < 6) {
+      await db.execute(
+        'ALTER TABLE repairs ADD COLUMN billNumber TEXT',
+      );
+    }
   }
 
   Future<void> _createDB(Database db, int version) async {
@@ -76,7 +81,8 @@ class DatabaseHelper {
         checklistBefore TEXT NOT NULL DEFAULT "",
         checklistAfter TEXT NOT NULL DEFAULT "",
         customerProvidedParts TEXT NOT NULL DEFAULT "",
-        repairNotes TEXT
+        repairNotes TEXT,
+        billNumber TEXT
       )
     ''');
   }
@@ -107,6 +113,22 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [repair.id],
     );
+  }
+
+  Future<void> updateBillNumber(int id, String billNumber) async {
+    final db = await database;
+    await db.update(
+      'repairs',
+      {'billNumber': billNumber},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<int> getRepairCount() async {
+    final db = await database;
+    final result = await db.rawQuery('SELECT COUNT(*) as count FROM repairs');
+    return Sqflite.firstIntValue(result) ?? 0;
   }
 
   Future<int> deleteRepair(int id) async {

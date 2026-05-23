@@ -16,7 +16,7 @@ class PdfService {
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(32),
         build: (context) => [
-          _buildHeader(),
+          _buildHeader(repair),
           pw.SizedBox(height: 20),
           _buildCustomerInfo(repair, dateFormat),
           pw.SizedBox(height: 20),
@@ -48,14 +48,15 @@ class PdfService {
     );
 
     final output = await getApplicationDocumentsDirectory();
-    final fileName = 'PhoneFX_Bill_${repair.id}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+    final billTag = repair.billNumber ?? 'PFX-${repair.id!.toString().padLeft(4, '0')}';
+    final fileName = 'PhoneFX_${billTag}.pdf';
     final file = File('${output.path}/$fileName');
     await file.writeAsBytes(await pdf.save());
 
     return file;
   }
 
-  static pw.Widget _buildHeader() {
+  static pw.Widget _buildHeader(RepairRecord repair) {
     return pw.Container(
       padding: const pw.EdgeInsets.all(16),
       decoration: pw.BoxDecoration(
@@ -76,6 +77,14 @@ class PdfService {
             'Professional Repair Services',
             style: const pw.TextStyle(
               fontSize: 14,
+              color: PdfColors.white,
+            ),
+          ),
+          pw.SizedBox(height: 6),
+          pw.Text(
+            'Bill No: ${repair.billNumber ?? 'PFX-${repair.id!.toString().padLeft(4, '0')}'}',
+            style: const pw.TextStyle(
+              fontSize: 10,
               color: PdfColors.white,
             ),
           ),

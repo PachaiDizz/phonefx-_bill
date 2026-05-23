@@ -415,9 +415,14 @@ class _RepairDetailScreenState extends State<RepairDetailScreen> {
                 children: [
                   _buildInfoCard(
                     title: 'Repair Information',
-                    icon: Icons.calendar_today,
+                    icon: Icons.receipt,
                     iconColor: const Color(0xFF2563EB),
                     children: [
+                        _buildInfoRow(
+                          'Bill No.',
+                          _repair.billNumber ?? 'PFX-${_repair.id!.toString().padLeft(4, '0')}',
+                          valueColor: const Color(0xFF2563EB),
+                        ),
                       _buildInfoRow(
                         'Repair Date',
                         dateFormat.format(_repair.repairDate),

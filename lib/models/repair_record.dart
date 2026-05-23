@@ -22,9 +22,11 @@ class RepairRecord {
 
   // NEW: Free-text notes for work done (e.g. "Replaced Power IC", "OLED Original screen")
   final String? repairNotes;
+  final String? billNumber;
 
   RepairRecord({
     this.id,
+    this.billNumber,
     required this.customerName,
     required this.deviceType,
     required this.deviceBrand,
@@ -68,6 +70,7 @@ class RepairRecord {
           .join('||'),
       'customerProvidedParts': customerProvidedParts.join('|'),
       'repairNotes': repairNotes,
+      'billNumber': billNumber,
     };
   }
 
@@ -111,6 +114,7 @@ class RepairRecord {
           ? (map['customerProvidedParts'] as String).split('|')
           : [],
       repairNotes: map['repairNotes'] as String?,
+      billNumber: map['billNumber'] as String?,
     );
   }
 
@@ -133,6 +137,7 @@ class RepairRecord {
     Map<String, String>? checklistAfter,
     List<String>? customerProvidedParts,
     String? repairNotes,
+    String? billNumber,
   }) {
     return RepairRecord(
       id: id ?? this.id,
@@ -155,6 +160,7 @@ class RepairRecord {
       customerProvidedParts:
           customerProvidedParts ?? this.customerProvidedParts,
       repairNotes: repairNotes ?? this.repairNotes,
+      billNumber: billNumber ?? this.billNumber,
     );
   }
 }

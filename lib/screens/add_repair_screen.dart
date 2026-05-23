@@ -193,7 +193,12 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
       if (widget.repair != null) {
         await DatabaseHelper.instance.updateRepair(repair);
       } else {
-        await DatabaseHelper.instance.insertRepair(repair);
+        final newId = await DatabaseHelper.instance.insertRepair(repair);
+        if (newId > 0) {
+          final count = await DatabaseHelper.instance.getRepairCount();
+          final billNumber = 'PFX-${count.toString().padLeft(4, '0')}';
+          await DatabaseHelper.instance.updateBillNumber(newId, billNumber);
+        }
       }
 
       if (mounted) {
